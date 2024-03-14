@@ -1,12 +1,17 @@
 import os
 from pydantic import BaseModel
 from nicegui import ui, Tailwind
-from typing import Dict, Optional
+from typing import Dict, Optional, List
+
+from src.custompath import Path
 
 from .custompath import *
 
 class WalkHandler:
-    def process(self, path: Path):
+    def process(self, path: Path, diff: List[str]) -> bool:
+        return True
+    
+    def reset(self):
         pass
 
 class FileCounter(WalkHandler):
@@ -27,7 +32,7 @@ class FileCounter(WalkHandler):
     
     container: Optional[ui.element]
     
-    def process(self, path: Path):
+    def process(self, path: Path, diff: List[str]):
         if not path.is_file:
             return
         
@@ -37,6 +42,13 @@ class FileCounter(WalkHandler):
         
         self.change_count += 0
         
+        self.render()
+        
+        return True
+        
+    def reset(self):
+        self.change_count = 0
+        self.filestats = {}
         self.render()
         
     
@@ -66,8 +78,27 @@ class FileCounter(WalkHandler):
         self.container = ui.element("div")
         with self.container:
             ui.label("file stat")
+            
+            
+    
+class CommentFilter(WalkHandler):
+    
+    def process(self, path: Path, diff: List[str]) -> bool:
+        c = 0
         
-        
+        for line in diff:
+            if not (line.startswith("+") or line.startswith("-")):
+                continue
+            
+            line = line.lstrip("-")
+            line = line.lstrip("+")
+            line = line.lstrip("\t")
+            line = line.lstrip(" ")
+            
+            if not line.startswith("//"):
+                c += 1
+            
+        return c > 0
         
         
 
